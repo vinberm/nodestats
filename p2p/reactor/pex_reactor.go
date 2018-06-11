@@ -9,6 +9,7 @@ import (
 	cmn "github.com/tendermint/tmlibs/common"
 	"time"
 	"sync"
+	"strings"
 )
 
 const (
@@ -150,4 +151,39 @@ func (r *PEXReactor) RequestAddrs(p *p2p.Peer) bool {
 	return ok
 }
 
+func (r *PEXReactor) dialSeeds() {
+	if r.Switch.Config.Seeds == "" {
+		return
+	}
 
+	seeds := strings.Split(r.Switch.Config.Seeds, ",")
+	netAddrs, err := p2p.NewNetAddressStrings(seeds)
+	if err != nil {
+		log.WithField("err", err).Error("dialSeeds: fail to decode net address strings")
+	}
+
+	ourAddr, err := p2p.NewNetAddressString(r.Switch.NodeInfo().ListenAddr)
+	if err != nil {
+		log.WithField("err", err).Error("dialSeeds: fail to get our address")
+	}
+
+	for _, netAddr := range netAddrs {
+		if netAddr.Equals(ourAddr) {
+			continue
+		}
+		if err := r.book.AddAddress(netAddr, ourAddr); err != nil {
+			log.WithField("err", err).Warn("dialSeeds: fail to add address")
+		}
+	}
+
+	if err := r.book.SaveToFile(); err != nil {
+		log.WithField("err", err).Warn("dialSeeds: fail to save address book")
+	}
+
+	perm := rand.Perm(len(netAddrs))
+	for i := 0; i < len(perm); i += 2 {
+		if err := r.Switch.DialPeerWithAddress(netAddrs[perm[i]]); err != nil {
+			log.WithField("err", err).Warn("dialSeeds: fail to dial seed")
+		}
+	}
+}

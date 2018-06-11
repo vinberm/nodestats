@@ -60,3 +60,10 @@ func (ps *PeerSet) Add(peer *Peer) error {
 	ps.list = append(ps.list, peer)
 	return nil
 }
+
+// Size returns the number of unique items in the peerSet.
+func (ps *PeerSet) Size() int {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+	return len(ps.list)
+}

@@ -23,7 +23,7 @@ var (
 )
 
 type Switch struct {
-	config       *cfg.Config
+	Config       *cfg.Config
 	peerConfig   *PeerConfig
 
 	chDescs      []*connection.ChannelDescriptor
@@ -39,7 +39,7 @@ type Switch struct {
 
 func NewSwitch(config *cfg.Config, addrBook *AddrBook) *Switch {
 	sw := &Switch{
-		config: config,
+		onfig: config,
 		addrBook: addrBook,
 		nodeInfo: nil,
 	}
@@ -170,5 +170,11 @@ func (sw *Switch) stopAndRemovePeer(peer *Peer, reason interface{}) {
 // StopPeerGracefully disconnect from a peer gracefully.
 func (sw *Switch) StopPeerGracefully(peer *Peer) {
 	sw.stopAndRemovePeer(peer, nil)
+}
+
+// NodeInfo returns the switch's NodeInfo.
+// NOTE: Not goroutine safe.
+func (sw *Switch) NodeInfo() *NodeInfo {
+	return sw.nodeInfo
 }
 
