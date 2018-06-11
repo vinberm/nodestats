@@ -8,7 +8,7 @@ import (
 
 //Reactor is responsible for handling incoming messages of one or more `Channels`
 type Reactor interface {
-	cmn.Service // Start, Stop
+	//cmn.Service // Start, Stop
 
 	// SetSwitch allows setting a switch.
 	SetSwitch(*Switch)

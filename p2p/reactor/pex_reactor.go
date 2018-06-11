@@ -187,3 +187,16 @@ func (r *PEXReactor) dialSeeds() {
 		}
 	}
 }
+
+func (r *PEXReactor) flushMsgCountByPeer() {
+	ticker := time.NewTicker(1 * time.Hour)
+	for {
+		select {
+		case <-ticker.C:
+			r.msgCountByPeer.Clear()
+		case <-r.Quit:
+			return
+		}
+	}
+}
+
