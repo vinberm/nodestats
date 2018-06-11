@@ -1,10 +1,23 @@
 package reactor
 
 import (
+	"math/rand"
+
 	"github.com/nodestats/p2p"
+
+	log "github.com/sirupsen/logrus"
 	cmn "github.com/tendermint/tmlibs/common"
 	"time"
 	"sync"
+)
+
+const (
+	// PexChannel is a channel for PEX messages
+	PexChannel = byte(0x00)
+
+	minNumOutboundPeers      = 5
+	maxPexMessageSize        = 1048576 // 1MB
+	defaultMaxMsgCountByPeer = uint16(1000)
 )
 
 // PEXReactor handles peer exchange and ensures that an adequate number of peers are connected to the switch.
@@ -40,6 +53,16 @@ func (r *PEXReactor) OnStop() {
 	r.book.Stop()
 }
 
+func (r *PEXReactor) dialPeerWorker(a *p2p.NetAddress, wg *sync.WaitGroup) {
+	if err := r.Switch.DialPeerWithAddress(a); err != nil {
+		r.book.MarkAttempt(a)
+	} else {
+		r.book.MarkGood(a)
+	}
+	wg.Done()
+}
+
+//
 func (r *PEXReactor) ensurePeers() {
 	numOutPeers, _, numDialing := r.Switch.NumPeers()
 	numToDial := (minNumOutboundPeers - (numOutPeers + numDialing)) * 3
@@ -118,6 +141,13 @@ func (r *PEXReactor) ensurePeersRoutine() {
 	}
 }
 
-
+// RequestAddrs asks peer for more addresses.
+func (r *PEXReactor) RequestAddrs(p *p2p.Peer) bool {
+	ok := p.TrySend(PexChannel, struct{ PexMessage }{&pexRequestMessage{}})
+	if !ok {
+		r.Switch.StopPeerGracefully(p)
+	}
+	return ok
+}
 
 
